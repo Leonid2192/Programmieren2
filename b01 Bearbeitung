@@ -1,0 +1,49 @@
+Git Status erklären
+Die Ausgabe zeigt, dass sich das Repository auf dem Branch b03 befindet und zwei bereits bekannte Dateien geändert, aber noch nicht zum Commit vorgemerkt sind. Die Datei foo.java ist neu und wird von Git noch nicht verfolgt.
+Um foo.java hinzuzufügen muss die Befehle "git add foo.java" und "git commit -m "Add foo.java"" eingeben. 
+
+ Git Spiel
+
+ Aufgabe 1:
+1.1:Was passierte an tag 01? 
+In einer düsteren und mysteriösen Welt wagte sich ein furchtloser Held namens Markus in einen gefährlichen Dungeon. 
+Es wurde erzählt, dass in diesem Dungeon Monster lauerten, die die Kerkerebenen terrorisierten. Markus war jedoch fest entschlossen, die Monster zu besiegen und das Amulet zu finden.
+Mit seinem Schwert in der Hand und und einer leichten Rüstung bekleidet stieg Markus tapfer in den Dungeon ein. Schon bald stieß er auf die ersten Monster - grässliche, rattenähnliche Wesen.
+Um die ID des Tages herauszufinden habe ich den Befehl "git log --oneline" benutzt
+und um herauszufinden was am Tag passierte benutzte ich den Befehl "git show 4aa8014"
+
+1.2:Wann hat der Held zum ersten Mal 4 experience Punkte?
+An Tag 01.3 und, dass habe ich mit dem Befehl "git show 590fc86" herausgefunden.
+
+1.3:Wann hat der Held zum ersten Mal 10 hunger Punkte?
+An Tag 02, dass habe ich durch den Befehl "git log -p stats.md" herausgefunden, indem ich gescrollt habe und nach einer +10 bei Hunger suchte.
+
+1.4:Wie viele Heiltränke hat der Held insgesamt in seinem Rucksack gehabt?
+Der Held hatte 2 Stück, dass habe ich herausgefunden durch den Befehl "git log -S "Heiltrank" -p rucksack.md" und dann gescrollt habe bis das Ende kam und ich habe bei Heiltrank zweimal ein plus gesehen.
+
+1.5:Was hat der Held im Shop gekauft? Und wie viel Gold hat er dafür bezahlt?
+Der Held hat ein "Zwergenbrot" gekauft und dass für 5 Goldstücke, ich habe, dass durch den Befehl git log -p -S "Gold" herausgefunden, indem ich mit Leertaste weiter gescrollt habe um alles zu finden was mit Gold zu tun hat.
+
+1.6:Was passierte zwischen tag 03 und tag 04, d.h. was änderte sich zwischen diesen Commits?
+Aus dem Rucksack verschwanden 10 Gold, sein Health ist von 5 auf 10 gestiegen und sein Hunger ist von 10 auf 0 gesunken.
+Ich habe den Befehl "git diff 2ffebcf 39568d5(ID's von Tag 3 und 4)" eingegeben um herauszufinden was sich zwischen diesen Tagen veränderte, indem ich die Minus und Plus zeichen beobachtete.
+
+1.7:Hat der Held etwas gegessen? Falls ja, was und wann?
+Ja, der Held hat an Tag 3.17 Brot gegessen.
+Das habe ich durch den Befehl "git log -p stats.md" herausgefunden, indem ich gescrollt habe bis ich gesehen habe,
+dass der Hunger sinkt und dann habe ich geguckt an welchem Tag das war und den Befehl "git show 13834cd(ID von Tag 3.17)", um zu gucken was aus dem Rucksack verschwand um zu wissen was er gegessen hat.
+
+2:Beim letzten Commit (tag 04.5) ist etwas schief gelaufen, es wurden versehentlich zu wenig experience Punkte eingestellt. Ändern Sie diesen letzten Commit und passen Sie die experience Punkte auf 42 an.
+Ich habe mit dem Befehl "stats.md" die stats Datei in einem Editor geöffnet und erstmal dort geändert und dann habe ich "git add stats.md" gefolgt von "git commit --amend --no-edit" in die Konsole eingegeben, damit es endgültig espeichert ist.
+
+3:Schreiben Sie die Geschichte in der Datei questlog.md fort und erzeugen Sie einen neuen Commit für tag 04.6. Ändern Sie bitte hierzu nur die eine Datei questlog.md.
+Ich habe zuerst "questlog.md" in die konsole eingegeben und im Editor die Geschichte weiter geschrieben, dann habe ich "git add questlog.md" und "git commit -m "tag 04.6"" eingegeben um den commit als Tag 04.6 zu speichern.
+
+4:Schreiben Sie die Geschichte noch weiter fort (tag 04.7), aber ändern Sie diesmal mehrere Dateien, die an diesem Tag (neuer Commit) gemeinsam eingecheckt werden sollen.
+Ich habe mit "questlog.md" die Geschichte weiter geschrieben und mit "stats.md" seine XP punkte auf 50 erhöht im Editor und,
+dann habe ich mit den Befehlen "git add questlog.md stats.md" und "git commit -m "tag 04.7"" die Veränderung als Tag 04.7 gespeichert.
+
+5:Fälschlicherweise wurden die Statuspunkte und die Ausrüstung bisher gemeinsam in der Datei stats.md geführt.
+Korrigieren Sie das und verschieben Sie die Ausrüstungsgegenstände aus der Datei stats.md in eine neue Datei gear.md. Checken Sie Ihre Änderungen als tag 04.8 (neuer Commit) gemeinsam ein.
+(Hinweis: Es reicht, wenn diese Änderung als letzter Commit auf der Spitze des master-Branches existiert. Sie brauchen/sollen die Trennung von Statuspunkten und Ausrüstung nicht rückwirkend in die Historie einbauen!)
+Ich habe mit dem Befehl "type nul > gear.md" die Datei gear hinzugefügt und dann habe ich mit "stats.md" weapon und armour aus stats gelöscht und in gear mit "gear.md" hinzugefügt und um es zu speichern habe ich "git add stats.md gear.md" und "git commit -m "tag 04.8"" in die Konsole eingegeben.
