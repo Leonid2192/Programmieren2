@@ -1,0 +1,48 @@
+Git-Spiel
+
+1.Ändern Sie eine Datei, die im Branch end nicht verändert wurde. Erzeugen Sie mit diesen Änderungen auf dem master einen neuen Commit. Mergen Sie danach den Branch end in den master-Branch.
+
+Ich habe zuerst mit .\README.md etwas an der README im master branch geändert, danach habe ich die Befehle git add README.md und git commit -m benutzt bevor ich git merge end benutzt habe.
+
+2.Ändern Sie nun eine Datei, die auch im Branch end verändert wurde. Achten Sie dabei darauf, die Änderung an einer anderen Stelle in der Datei vorzunehmen. Erzeugen Sie mit diesen Änderungen auf dem master einen neuen Commit. Mergen Sie danach den Branch end in den master-Branch.
+
+Ich habe etwas an questlog mit dem Befehl questlog.md geändert und git add questlog.md und git commit -m, um die Änderung zu speichern doch als ich sie mergen wollte kam ein Fehler auf, doch durch recherchierung fande ich raus, dass ich auf die Datei questlog.md nochmal zugreifen muss und als ich in der Datei drin war habe ich auf Accept both changes gedrückt, danach konnte ich ohne Probleme die Branches mergen.
+
+3.Wie (2), aber ändern Sie nun eine Stelle, die auch im Branch end verändert wurde. Erzeugen Sie mit diesen Änderungen auf dem master einen neuen Commit. Mergen Sie danach den Branch end in den master-Branch. Was passiert, wenn die Änderung im master identisch zu der in end ist? Was passiert, wenn die Änderung im master anders ist als in end?
+
+ich bin wie vor auf die Datei questlog.md gekommen und habe das Ende von end reinkopiert und dannach geaddet und und commited, aber nach dem Merge hat sich nichts an questlog.md geändert,
+sondern nur bei rucksack.md und stats.md aber als ich etwas anderes hingeschrieben habe, was nicht identisch war kam eine Fehlermeldung, wo ich dann auf questlog.md zugreifen musste und die Option zwischen "Keep Current Change", "Keep Incoming Change" und "Accept Both Changes" hatte und erst nachdem ich etwas davon geählt habe konnte ich mergen.
+
+4.Wie (2), aber setzen Sie bitte den Branch end auf die Spitze von master, bevor Sie end in master mergen.
+
+Ich habe wie davor etwas an questlog.md geändert und dann als ich auf dem end Branch war und mit dem Befehl git rebase master den branch end auf die spitze setzen wollte kam eine Fehlermeldung, das ich erst auf questlog.md muss und dann hatte ich wieder die 3 Optionen vor mir die ich auswählen musste und erst nachdem wurde der rebase und merge akzeptiert. 
+
+Katzen Cafe
+
+JUnit
+
+1.Warum sind die von Ihnen formulierten Testfälle relevant?
+
+Die Testfälle sind deshalb relevant, weil sie die Kernfunktionalitäten und die Robustheit der Anwendung sicherstellen:
+
+Sicherstellung der Basisfunktionen: Durch Tests wie testAddCat und testRemoveCat wird garantiert, dass die grundlegenden Geschäftsprozesse des Cat-Cafés (Katzen kommen und gehen) technisch korrekt funktionieren.
+
+Vermeidung von Fehlzuständen: Testfälle wie testRemoveFromEmpty (Entfernen aus leerem Café) sind essenziell, um sicherzustellen, dass das Programm nicht in unlogische Zustände gerät (z. B. eine negative Katzenanzahl), was in einer echten Anwendung zu Abstürzen führen könnte.
+
+Datenintegrität: Die Tests der Klasse Cat (testCatName, testCatColor) stellen sicher, dass Informationen über die Objekte korrekt gespeichert und wieder abgerufen werden können.
+
+Stabilität bei Skalierung: Durch testMultipleAdd (Schleife) wird geprüft, ob die Logik auch bei größeren Datenmengen stabil bleibt und nicht nur bei Einzelwerten funktioniert.
+
+2.Warum halten Sie die formulierten Testfälle für unterschiedlich?
+
+Die Testfälle decken verschiedene Test-Kategorien ab, was sie deutlich voneinander unterscheidet:
+
+Positive Tests (Happy Path): Tests wie testAddCat, bei denen alles nach Plan verläuft.
+
+Negative Tests / Fehlertests: Tests wie testRemoveFromEmpty, die prüfen, wie das System auf unvorhergesehene oder eigentlich falsche Eingaben reagiert.
+
+Zustandsprüfungen: testInitialEmpty prüft den Zustand direkt nach der Erzeugung eines Objekts (Konstruktor-Check), während testResetCafe den Übergang von einem gefüllten zu einem leeren Zustand prüft.
+
+Grenz- und Mengentests: testMultipleAdd prüft das Verhalten bei wiederholten Aufrufen, was sich von einem einfachen Einzeltest unterscheidet.
+
+Attribut-Tests: Während die meisten Tests die Logik des Cafés prüfen, konzentrieren sich die Cat-Tests auf die Korrektheit der Datenhaltung einzelner Objekte.
