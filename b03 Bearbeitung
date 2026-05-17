@@ -1,0 +1,80 @@
+Aufgabe 1: Calculator: Anonyme Klassen und Lambda-Ausdrücke
+
+1.1:Implementierung der Subtraktion (Externe Klasse)
+
+Die erste Aufgabe forderte die Implementierung einer Subtraktion unter strikter Einhaltung der klassischen Objektorientierung.
+
+Vorgehensweise: Es wurde eine eigenständige Java-Klasse Sub.java im entsprechenden Package angelegt.
+
+Technische Details: Diese Klasse implementiert das Interface Operation. Durch die Annotation @Override wurde die Methode int doOperation(int a, int b) definiert, welche die Differenz der beiden Operanden zurückgibt.
+
+Integration: In der Klasse Calculator wurde innerhalb der Methode setupOperationSelector eine Instanz dieser Klasse erzeugt und mit operations.put("Sub", new Sub()); in die zentrale Operation-Map registriert.
+
+1.2:Implementierung der Multiplikation (Anonyme Klasse)
+
+Für die Multiplikation wurde das Konzept der anonymen Klasse angewandt, um die Logik direkt am Ort der Verwendung zu kapseln.
+
+Technische Umsetzung: Anstatt eine neue Datei zu erzeugen, wurde direkt beim Aufruf der Map-Methode ein neues Objekt vom Typ Operation instanziiert.
+
+Code-Struktur: Dabei wurde der Klassenrumpf direkt an den Konstruktor-Aufruf angehängt. Dies ermöglichte die Implementierung von doOperation(int a, int b) { return a * b; } innerhalb des setupOperationSelector-Blocks.
+
+Ergebnis: Die Operation wurde der Map unter dem Schlüssel "Mul" zugewiesen, was sie sofort im GUI-Auswahlmenü verfügbar machte.
+
+1.3:Implementierung der Division (Lambda-Ausdruck)
+
+Die Division wurde als moderne Funktions-Referenz in Form eines Lambda-Ausdrucks umgesetzt.
+
+Konzept: Da das Interface Operation nur eine einzige abstrakte Methode besitzt (Functional Interface), konnte auf den gesamten Klassen-Boilerplate verzichtet werden.
+
+Syntax: Mit der Anweisung operations.put("Div", (a, b) -> a / b); wurde die Rechenlogik auf ihre Parameter reduziert. Java inferiert hierbei automatisch, dass es sich um die Implementierung von doOperation handelt. Dies stellt die effizienteste Form der Code-Reduktion in diesem Projekt dar.
+
+1.4:Refactoring der GUI-Ereignissteuerung (Lambda-Konvertierung)
+Abschließend wurde die Interaktionslogik der Benutzeroberfläche optimiert.
+
+Ausgangslage: Der ActionListener für den operationSelector (JComboBox) war ursprünglich als anonyme Klasse definiert, was den Code unübersichtlich machte.
+
+Optimierung: Die anonyme Klasse wurde durch einen Lambda-Ausdruck ersetzt: e -> { ... }. Innerhalb dieses Lambdas wird die calculate()-Methode aufgerufen und das Ergebnis im Textfeld result angezeigt.
+
+Fehlerbehandlung: Zur Sicherstellung der Stabilität wurde innerhalb des Lambdas ein try-catch-Block integriert, um NumberFormatException-Fehler abzufangen, falls ungültige (nicht-ganzzahlige) Eingaben in die Textfelder getätigt werden.
+
+Aufgabe 2:LockSnake: Lambda-Ausdrücke, Methodenreferenzen und Observer-Pattern
+
+Aufgabe 2.1: Code-Analyse
+
+Zu Beginn wurde die bestehende Architektur des LockSnake-Projekts analysiert, um ein tiefes Verständnis für die Trennung von Logik (Model) und Anzeige (View) zu gewinnen.
+
+Vorgehensweise: Mithilfe des PlantUML-Plugins in IntelliJ wurde die Paketstruktur (model, logic, ui) visualisiert.
+
+Ergebnis: Es wurde ein UML-Klassendiagramm erstellt, das die zentralen Entitäten wie Snake, Pin und Level sowie deren Verwaltung durch die GameEngine und den GameState abbildet. Diese Analyse verdeutlichte die Notwendigkeit des Observer-Patterns zur Entkoppelung der Spielengine von der grafischen Oberfläche.
+
+Aufgabe 2.2: Spielmodell GameEngine und Spielzustand GameState
+
+Der Kern der Spielmechanik wurde in der Klasse GameState realisiert, wobei der Fokus auf der Validierung von Bewegungsabläufen lag.
+
+Technische Umsetzung: Die Methode tick() berechnet bei jedem Aufruf die neue Kopfposition der Schlange mittels der applyTo-Methode des Direction-Enums.
+
+Kollisionsmanagement: Es wurden logische Prüfungen für den Spielfeldrand (isInside), Wandkollisionen (CellType.WALL) und die Selbstkollision der Schlange implementiert.
+
+Pin-Mechanik: Eine Besonderheit stellt die Aktivierung der Pins dar. Ein Pin wird nur dann in den Zustand HIGH versetzt, wenn die Schlange aus der exakt vorgegebenen activationDirection auf ihn trifft. In diesem Fall wird die Bewegung blockiert, statt den Pin zu überqueren.
+
+Aufgabe 2.3: Observer-Pattern
+
+Um die Benutzeroberfläche über Zustandsänderungen zu informieren, wurde ein Observer-Pattern unter Verwendung moderner Java-Features implementiert.
+
+Registrierung: In der GameEngine wurde eine Liste vom Typ List<Consumer<GameState>> angelegt. Über die Methode addObserver können sich interessierte Komponenten (wie das GamePanel) anmelden.
+
+Lambda-Einsatz: Die Benachrichtigung der Beobachter erfolgt effizient über einen Lambda-Ausdruck in der Methode notifyObservers: observers.forEach(o -> o.accept(state));.
+
+Methodenreferenz: Bei der Integration in der Main-Klasse wurde eine Methodenreferenz genutzt, um das GUI-Panel anzubinden: engine.addObserver(panel::update);. Dies ersetzt die klassische, explizite Listener-Implementierung und steigert die Lesbarkeit des Codes erheblich.
+
+Stream-API: Innerhalb der Siegprüfung im GameState wurde die Stream-API eingesetzt: pins.stream().allMatch(p -> p.state().isSet()). Dies demonstriert eine funktionale Herangehensweise an die Prüfung von Listen-Zuständen.
+
+Aufgabe 2.4: JUnit
+
+Zur Sicherstellung der Korrektheit der implementierten Logik wurde eine umfassende Testsuite mit JUnit 5 entwickelt.
+
+Test-Design: Es wurden 10 unterschiedliche Testszenarien definiert, die jeweils dem Given-When-Then Schema folgen (z.B. testWallCollision oder testPinActivation).
+
+Objektvergleich: Damit die Tests korrekt funktionieren, wurde in der Klasse Position die equals- und hashCode-Methoden überschrieben. Dies stellt sicher, dass zwei Positionen anhand ihrer Koordinaten (x, y) verglichen werden und nicht nur anhand ihrer Speicheradresse.
+
+Abdeckung: Die Tests decken sowohl positive Verläufe (normale Bewegung, Sieg) als auch negative Szenarien (Spielfeldaustritt, Blockade durch gesetzte Pins) ab, was die Robustheit des GameState nachweist.
