@@ -1,0 +1,97 @@
+1.1: Vervollständigung der Token-Definitionen
+In der Klasse highlighting.presets.MiniJavaTokens wurde die Methode defaultTokens() implementiert.
+ Die Definitionen basieren auf der Token-Klasse, welche ein vorkompiliertes java.util.regex.Pattern und eine java.awt.Color kapselt.
+ Um lexikalische Fehlinterpretationen zu vermeiden, wurde die Reihenfolge der Deklaration strikt hierarchisch von der höchsten zur niedrigsten Spezifität geordnet.
+ Javadoc- und Blockkommentare: Javadoc-Kommentare (/ ... */) wurden vor regulären mehrzeiligen Kommentaren (/* ... */) platziert.
+ Dadurch wird verhindert, dass das allgemeinere Blockkommentar-Token ein Javadoc-Token fälschlicherweise "verschlingt".
+ Javadoc Pattern: /\*\*[\s\S]*?\*/Blockkommentar Pattern: /\*[\s\S]*?\*/ (Das Flag [\s\S]*? stellt einen non-greedy Match über Zeilenumbrüche hinweg sicher).
+ Einzeilige Kommentare: Erfasst alle Zeichen ab der Sequenz // bis zum folgenden Zeilenende.Pattern: //.
+ *Strings und Characters: Kapseln Text innerhalb von Anführungszeichen bzw. ein einzelnes Zeichen in einfachen Anführungszeichen unter Berücksichtigung 
+ von Basiselementen.String Pattern: "[^"\\]*(?:\\.[^"\\]*)*"Character Pattern: '[^'\\](?:\\.)?'Keywords: Kontrollstrukturen und Datentypen wurden mithilfe von 
+ Wortgrenzen (\b) isoliert, damit sie nicht als Teilstrings in längeren Bezeichnern (wie z. B. initial) matchen.
+ Pattern: \b(package|import|class|public|private|final|return|null|new|if|else|while|int|boolean|void)\bAnnotationen: Identifiziert Ausdrücke, die mit einem 
+ @ beginnen, gefolgt von einer gültigen Zeichenkette.Pattern: @[a-zA-Z_][a-zA-Z0-9_]*
+ 
+ 1.2: JUnit-Tests für Token-Klassen
+ Zur Qualitätssicherung der regulären Ausdrücke wurde im Test-Verzeichnis (src/test/java/highlighting/presets/TokenTest.java) eine dedizierte JUnit-5-Testsuite implementiert.
+ Positionsspezifische Validierung: Jedes Pattern wurde systematisch auf Treffer am absoluten Textanfang, inmitten von Codeblöcken sowie am Textende geprüft.
+ Grenzfall-Prüfung (Edge Cases):Kommentar-Inhalte: Es wurde verifiziert, dass Keywords (z. B. class) innerhalb eines einzeiligen Kommentars // Anmerkung zur 
+ class ausschließlich vom Kommentar-Token und nicht vom Keyword-Token registriert werden (Vorbereitung auf die Konfliktauflösung).
+ String-Inhalte: Es wurde getestet, dass die Sequenz // innerhalb eines Strings (String url = "http://localhost";) korrekt als String-Bestandteil evaluiert wird.
+ 
+ Aufgabe 2: Syntaxhighlighting mit dem RegexHighlighter
+ Der RegexHighlighter folgt einer naiven Strategie: Alle registrierten Tokens werden vollkommen isoliert auf
+ den Quelltext angewendet. Die daraus resultierenden, potenziell kollidierenden Treffer werden anschließend über die geerbte Template-Methode
+ computeRegions normalisiert und algorithmisch bereinigt.
+ 
+ 2.1: Implementierung von collectMatches
+ Die Methode durchläuft sequentiell
+ die in MiniJavaTokens definierte Liste. Jedes Token scannt den gesamten Eingabetext autonom. Alle ermittelten Treffer werden als
+ HighlightRegion-Objekte (Start- und Endindex als halb-offenes Intervall $[start, end)$, Farbe) in einer flachen, gemeinsamen Liste aggregiert.
+ Diese Liste wird an die vorgegebene Methode normalize übergeben, welche die Regionen primär nach Startposition (aufsteigend) und sekundär nach
+ Länge (absteigend) sortiert.
+ 
+ 2.2: Implementierung von resolveConflicts (Konfliktauflösung)
+ Da die Liste nach der Normalisierung ideal vorstrukturiert ist
+ (frühere und längere Regionen stehen deterministisch weiter vorne), wurde ein Greedy-Filter-Algorithmus implementiert
+
+ 2.3: JUnit-Tests für den RegexHighlighter
+ Die Testklasse RegexHighlighterTest.java verifiziert das Zusammenspiel der Komponenten:Schnittprüfung:
+ Es wurde nachgewiesen, dass bei direkt aufeinanderfolgenden Intervallen – wie $[0, 5)$ und $[5, 10)$ – beide Regionen im Endergebnis verbleiben.Vollständige
+ Überlappung: Ein Javadoc-Block, der theoretisch auch vom normalen Blockkommentar-Token erfasst worden wäre, behält durch die Listenreihenfolge
+ und die Konfliktauflösung deterministisch die spezifischere Javadoc-Farbe.
+
+ Aufgabe 4: Git: Pull-Requests und CI (Continuous Integration)
+
+ 4.1: CI-Pipeline-Konfiguration via GitHub Actions
+Zur automatisierten Qualitätssicherung wurde unter .github/workflows/ci.yml eine Pipeline definiert. 
+Entsprechend den Vorgaben reagiert sie ausschließlich auf die Ereignisse pull_request (Zielbranch: main/master) und workflow_dispatch (manuelle Auslösung). 
+Automatische Builds bei einfachen Branch-Pushs wurden unterdrückt.
+
+Die Pipeline umfasst drei strikt getrennte, sequentiell abhängige Jobs unter Verwendung von Java 21 (Temurin):
+
+build: Kompiliert das Projekt über den Gradle-Befehl ./gradlew classes.
+
+test: Erwartet den erfolgreichen Abschluss von build und führt die JUnit-Testsuite über ./gradlew test aus.
+
+format: Überprüft den Code im testenden Modus mittels ./gradlew spotlessCheck auf stilistische Konformität.
+ 
+4.2 & 4.3: Branch-Strategie, Pull-Requests und Peer-Review-Verfahren
+Isolation: Die Arbeiten an MiniJavaTokens (Aufgabe 1) und dem RegexHighlighter (Aufgabe 2) wurden in den separaten Branches
+feature/tokens und feature/regex-highlighter vollzogen.
+
+PR-Erstellung: Für jeden Branch wurde im eigenen Fork ein Pull Request geöffnet. Die Beschreibungen wurden präzise gepflegt
+(Dokumentation des aktuellen Implementierungsstandes, Auflistung der verifizierten Testfälle).
+
+Review-Prozess: Im Rahmen des Peer Reviews wurden Kommentare von Kommilitonen direkt an den betreffenden Codestellen analysiert.
+Stilistische Mängel (wie z. B. fälschlicherweise verwendete Tabulatoren in der YAML-Konfiguration oder unplatzierte Testklassen im produktiven main-Scope)
+wurden direkt behoben.
+
+Integration: Nach der Behebung aller Anmerkungen, dem erfolgreichen Durchlauf aller drei CI-Jobs (build, test, format) und der Erteilung der Review-Freigabe
+wurden die Pull Requests nacheinander über die GitHub-Oberfläche in den Hauptbranch zusammengeführt (Merged).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
