@@ -56,3 +56,27 @@ Aus der Kreuzkorrelation der Äquivalenzklassen und Grenzwerte wurden die folgen
 Zur vollständigen Isolation des Testobjektes `Shop` gegenüber der unvollständigen Klasse `Order` (welche ansonsten eine `UnsupportedOperationException` emittiert) wurde ein verhaltensbasiertes Stubbing über Mockito realisiert. 
 
 Die Interaktionen mit den Methoden `mockOrder.getBicycleType()` und `mockOrder.getCustomer()` wurden für jeden Testfall synthetisch konfiguriert, um die deterministischen Rückgabetypen (`Type` bzw. `String`) an die Kontrollstrukturen der Zielmethode zu übergeben. Die Ausführung der Testsuite verifiziert die fehlerfreie Einhaltung aller Geschäftsregeln.
+
+### 2.3: Systematische Testanalyse für die Methoden `repair` und `deliver`
+
+Zur vollständigen Abdeckung der Geschäftsprozesse der Fahrrad-Werkstatt wurden die verbleibenden Methoden `Shop#repair()` und `Shop#deliver(String c)` einer strukturierten Kontrollfluss- und Zustandsevaluierung unterzogen.
+
+#### 1. Analyse der Methode `Shop#repair()`
+Die Methode `repair()` dekrementiert die Warteschlange der anstehenden Reparaturen nach dem First-In-First-Out-Prinzip (FIFO), überführt den ältesten Auftrag in den Zustand "abgeschlossen" (`completedOrders`) und gibt diesen verpackt in einem `Optional<Order>` zurück.
+
+* **Äquivalenzklassen & Grenzwerte:**
+  * **Systemzustand: Warteschlange leer ($n = 0$):** Es existiert kein abzuarbeitender Auftrag. Die Methode muss deterministisch ein leeres Optional (`Optional.empty()`) emittieren.
+  * **Systemzustand: Warteschlange gefüllt ($n \ge 1$):** Der am längsten in der Queue befindliche Auftrag (Kopf-Element) wird extrahiert, verarbeitet und als `Optional.of(order)` zurückgegeben.
+* **Spezifikation der Testfälle:**
+  * **TF_07 (Nominalwert - Reparatur):** Einreichen zweier valider Aufträge (Kunde A, gefolgt von Kunde B). Nach Aufruf von `repair()` muss die Order von Kunde A zurückgegeben werden, und die interne Queue-Größe sinkt von 2 auf 1.
+  * **TF_08 (Fehlerpfad - Leere Queue):** Aufruf von `repair()` bei initial leerem Shop. Verifikation, dass das Resultat `Optional.empty()` entspricht und keine Exception geworfen wird.
+
+#### 2. Analyse der Methode `Shop#deliver(String c)`
+Die Methode `deliver(String c)` sucht innerhalb der Menge der fertiggestellten Reparaturen (`completedOrders`) nach einem Auftrag, welcher der übergebenen Kunden-ID `c` (Name) zugeordnet ist. Bei Erfolg wird der Auftrag aus dem System entfernt und ausgehändigt.
+
+* **Äquivalenzklassen & Grenzwerte:**
+  * **Eingabewert: Kunde mit vollendetem Auftrag vorhanden:** Die Methode findet die entsprechende Order, entfernt sie restlos aus `completedOrders` und gibt sie zurück (`Optional.of(order)`).
+  * **Eingabewert: Kunde unbekannt / Keine vollendete Reparatur:** Es existiert kein matching Treffer in der Menge. Die Methode gibt `Optional.empty()` zurück.
+* **Spezifikation der Testfälle:**
+  * **TF_09 (Nominalwert - Auslieferung):** Ein Auftrag für Kunde "Robin" wird via `repair()` fertiggestellt. Der Aufruf `deliver("Robin")` muss die korrekte Order extrahieren. Ein anschließender Zweitaufruf für denselben Kunden muss `Optional.empty()` liefern (Zustandsprüfung: Löschung war erfolgreich).
+  * **TF_10 (Fehlerpfad - Fehlender Kunde):** Ein Auftrag für Kunde "Fabio" ist abgeschlossen. Es wird versucht, das Fahrrad für "Betuel" abzuholen. Der Aufruf muss ein `Optional.empty()` emittieren, während der Auftrag von "Fabio" unangetastet im System verbleibt.
