@@ -1,0 +1,58 @@
+# Dokumentation: Syntax-Highlighting & Cycle Chronicles (Blatt 05)
+
+## Teil 1: ANTLR-basiertes Syntaxhighlighting & Pretty Printing
+
+### 1.1: Analyse des AntlrTokenCollector (Kollisionsfreiheit & Hooks)
+* **Konfliktfreiheit im Lexer-Strom:** Im Gegensatz zur manuellen Auswertung regulärer Ausdrücke treten beim Einsatz von ANTLR keine kombinatorischen Konflikte auf. Der von ANTLR generierte Lexer zerlegt den Eingabetext auf Basis einer deterministischen Zustandsmaschine (DFA) in eine lineare, überschneidungsfreie Kette von Token. Ein Zeichenstrom wird zu jedem Zeitpunkt exakt einem eindeutigen Token-Typ zugeordnet.
+* **Bedeutung für die Bereinigungs-Hooks:** Da der Token-Stream bereits inhärent partitioniert und konfliktfrei geliefert wird, müssen die Methoden `normalize` und `resolveConflicts` innerhalb der Klasse `AntlrTokenCollector` keine kompensatorische Bereinigungslogik ausführen. Die Token-Listen werden ohne Modifikation direkt weitergegeben bzw. verbleiben als leere Rumpfmethoden.
+
+### 1.2: Komplexitäts- und Robustheitsvergleich (ANTLR vs. Regex-Highlighter)
+* **Kontextsensitive Robustheit:** Der Regex-Highlighter aus Blatt 04 evaluierte Token isoliert, was zu systematischen Fehlinterpretationen führte (z. B. Keywords innerhalb von Kommentaren oder Strings). Der ANTLR-Lexer arbeitet zustandsbasiert und verhindert solche Überlappungen durch eine strikte lexikalische Grammatik im Vorfeld.
+* **Reduktion des Implementierungsaufwands:** Der softwareseitige Aufwand sinkt signifikant. Während bei Blatt 04 komplexe Filter-Algorithmen (`resolveConflicts`) und feingranulare reguläre Ausdrücke gepflegt werden mussten, kapselt ANTLR die Erkennungslogik vollständig in der Grammatikdatei (`.g4`). Der Java-Code reduziert sich auf ein lineares Auslesen und Mappen der generierten Token-Typen.
+
+### 1.3: Phänomen des unvollständigen Token-Streams (Hidden Channel)
+* **Kanal-Integrität im Parser-Baum:** Jadoc-, Block- und einzeilige Kommentare sowie Whitespaces sind im gerenderten Text-Output standardmäßig nicht sichtbar. 
+* **Ursachenanalyse:** In der zugrundeliegenden Grammatik werden diese Elemente über die Direktive `-> channel(HIDDEN)` auf einen separaten, für den Parser unsichtbaren Kanal verschoben. Da der implementierte Visitor ausschließlich den regulären Parse-Tree traversiert, verbleiben diese Token außerhalb des Zugriffsbereichs und fließen nicht in die Syntax-Einfärbung ein.
+
+---
+
+## Teil 2: Qualitätssicherung & Testtheorie (Cycle Chronicles)
+
+### 2.1: Systematische Testanalyse für die Methode `Shop#accept`
+Die Methode `Shop#accept` steuert die kontrollierte Annahme von Reparaturaufträgen. Ein Auftrag wird ausschließlich dann in die Warteschlange (`pendingOrders`) integriert und mit `true` quittiert, wenn alle fachlichen Restriktionen simultan erfüllt sind.
+
+#### 1. Äquivalenzklassenbildung (ÄKB)
+Zur Gewährleistung einer vollständigen Abdeckung der Definitionsbereiche wurden die Eingabemerkmale und Systemzustände in gültige ($gÄK$) und ungültige ($uÄK$) Äquivalenzklassen partitioniert:
+
+| Eingabemerkmal / Systemzustand | Gültige Äquivalenzklasse (gÄK) | Ungültige Äquivalenzklasse (uÄK) |
+| :--- | :--- | :--- |
+| **Fahrradtyp (`Type`)** | **gÄK 1:** Standard-Fahrradtypen ohne Werkstattrestriktion<br>*(z. B. `RACE`, `SINGLE_SPEED`, `FIXIE`)* | **uÄK 1:** Typ entspricht `EBIKE`<br>**uÄK 2:** Typ entspricht `GRAVEL` |
+| **Offene Aufträge pro Kunde** | **gÄK 2:** Anzahl bereits existierender, unvollendeter Aufträge des Kunden = 0 | **uÄK 3:** Anzahl unvollendeter Aufträge des Kunden $\ge 1$ |
+| **Kapazität der Shop-Warteschlange** | **gÄK 3:** Aktuelle Belegung der Auslastung $n \in [0, 4]$ | **uÄK 4:** Aktuelle Belegung der Auslastung $n \ge 5$ |
+
+#### 2. Grenzwertanalyse (GWA)
+Zur Erkennung potenzieller "Off-by-one"-Fehler an den Bedingungsrändern wurden die numerischen Schaltpunkte des Systemzustands isoliert:
+
+* **Sättigungsgrenze der Gesamtwarteschlange (Maximalkapazität von 5 Systemplätzen):**
+  * **Grenzwert $n = 4$:** Die Queue verfügt über exakt ein verbleibendes Kontingent. Ein eingehender, fachlich valider Auftrag muss deterministisch akzeptiert werden (**Erwartet: `true`**).
+  * **Grenzwert $n = 5$:** Die Maximalkapazität des Betriebes ist erreicht. Ein nachfolgender Auftrag muss abgewiesen werden (**Erwartet: `false`**).
+* **Restriktion der Kunden-Mehrfachbelegung (Maximal 1 aktiver Auftrag parallel):**
+  * **Grenzwert $k = 0$:** Es liegt keine systemische Vorbelastung durch den Kunden vor. Die Annahme ist zulässig (**Erwartet: `true`**).
+  * **Grenzwert $k = 1$:** Der Kunde blockiert bereits eine Werkstattkapazität. Ein Folgeauftrag desselben Kunden wird blockiert (**Erwartet: `false`**).
+
+#### 3. Spezifikation der konkreten Testfälle
+Aus der Kreuzkorrelation der Äquivalenzklassen und Grenzwerte wurden die folgenden sechs logischen Testfälle abgeleitet, welche in der automatisierten JUnit-5-Testsuite (`ShopTest.java`) implementiert wurden:
+
+| Test-ID | Analytischer Fokus | Fahrradtyp | Kunden-ID / Name | Initiale Queue-Größe | Erwartetes Resultat |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **TF_01** | Positivpfad (Nominalwert) | `RACE` | "Robin" | 0 | **`true`** |
+| **TF_02** | uÄK-Validierung: Ausschluss E-Bike | `EBIKE` | "Fabio" | 0 | **`false`** |
+| **TF_03** | uÄK-Validierung: Ausschluss Gravel | `GRAVEL` | "Betuel" | 0 | **`false`** |
+| **TF_04** | uÄK-Validierung: Kunden-Doublette | `RACE` | "Joel" | 1 *(identischer Kunde)* | **`false`** |
+| **TF_05** | GWA-Validierung: Letzter freier Slot | `RACE` | "NeuerKunde" | 4 *(divergierende Kunden)* | **`true`** |
+| **TF_06** | GWA-Validierung: Überlauf-Abweisung | `RACE` | "Ueberhang" | 5 *(divergierende Kunden)* | **`false`** |
+
+### 2.2: Implementierung der Mockito-basierten Testsuite
+Zur vollständigen Isolation des Testobjektes `Shop` gegenüber der unvollständigen Klasse `Order` (welche ansonsten eine `UnsupportedOperationException` emittiert) wurde ein verhaltensbasiertes Stubbing über Mockito realisiert. 
+
+Die Interaktionen mit den Methoden `mockOrder.getBicycleType()` und `mockOrder.getCustomer()` wurden für jeden Testfall synthetisch konfiguriert, um die deterministischen Rückgabetypen (`Type` bzw. `String`) an die Kontrollstrukturen der Zielmethode zu übergeben. Die Ausführung der Testsuite verifiziert die fehlerfreie Einhaltung aller Geschäftsregeln.
