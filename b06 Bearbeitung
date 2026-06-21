@@ -1,0 +1,61 @@
+## Aufgabe 1: JUnit-Testfälle
+Zur Absicherung der AST-Generierung wurden in `filter.ast.AstTest` fundamentale, isolierte Testfälle implementiert. Diese nutzen die Standard-JUnit-5-Assertions.
+
+* **`testSimpleComparison`**: Verifiziert das korrekte Parsing und Mappen eines einfachen Vergleichs (`artist == "Beatles"`) für beide Builder-Varianten.
+* **`testInListAndLogicalOperators`**: Überprüft, ob Wertelisten (`in ("rock", "jazz")`) zusammen mit logischen Verknüpfungen fehlerfrei strukturiert werden.
+* **`testOperatorPrecedence`**: Stellt sicher, dass die grammatikalischen Vorrangregeln (Präzedenz) korrekt im AST abgebildet werden (`and` bindet stärker als `or`).
+* **`testSimplifyDoubleNot`**: Prüft isoliert die logische Optimierung für die AST-Normalisierung.
+
+---
+
+## Aufgabe 2: AST-Builder mit dem Visitor-Pattern
+Die Klasse `AstBuilderVisitor` nutzt das klassische, **zustandsbehaftete** Visitor-Pattern (`FilterBaseVisitor<Void>`). 
+
+* **Mechanismus**: Die Traversierung erfolgt tiefenorientiert. Da der Rückgabetyp der Visitor-Methoden gemäß Vorgabe `Void` ist, wird das Ergebnis über zwei interne Stacks (`exprStack` für Ausdrücke, `valueStack` für Literale) verwaltet.
+* **LIFO-Besonderheit**: Beim Verarbeiten von Listen (`IN`-Operator) werden die Elemente beim Herunternehmen vom Stack umgedreht (`Collections.reverse()`), um die ursprüngliche Leserichtung beizubehalten.
+
+---
+
+## Aufgabe 3: AST-Builder mit typbasiertem Pattern Matching
+Die Klasse `AstBuilderPattern` implementiert eine **zustandlose**, manuelle Traversierung des Parse-Trees.
+
+* **Mechanismus**: Die Navigation erfolgt direkt über die Kontext-Methoden von ANTLR. Die Methoden geben die erzeugten AST-Knoten (`Expr` bzw. `Value`) direkt als Return-Wert zurück. Der JVM-Call-Stack ersetzt somit die explizite Stack-Struktur aus Aufgabe 2.
+* **Modernes Java**: Die Zuordnung der Vergleichsoperatoren (`==`, `!=`, etc.) zu den internen Enums (`CompOp`) wird elegant über funktionale `switch`-Expressions gelöst.
+
+---
+
+## Aufgabe 4: Vergleich Visitor-Pattern vs. Pattern Matching
+
+| Kriterium | Visitor-Pattern (`AstBuilderVisitor`) | Pattern Matching (`AstBuilderPattern`) |
+| :--- | :--- | :--- |
+| **Zustandsverwaltung** | **Zustandsbehaftet**: Benötigt explizite Stacks (`Deque`). Erhöht das Risiko für `EmptyStackException`. | **Zustandslos**: Nutzt funktionale Rückgabetypen. Sicherer und frei von Seiteneffekten. |
+| **Lesbarkeit** | Logischer Kontrollfluss ist durch imperative Push/Pop-Operationen schwerer nachzuvollziehen. | Extrem hohe Lesbarkeit, da die Struktur der Methoden exakt der Hierarchie der Ausdrücke entspricht. |
+| **Wartbarkeit** | Stark an das generierte ANTLR-Visitor-Skelett gebunden. | Unabhängig von Vererbungshierarchien des Parsers; flexibler bei Refactorings. |
+
+**Fazit**: Für moderne Java-Infrastrukturen bietet der typbasierte Ansatz (Pattern Matching) erhebliche Vorteile in puncto Typsicherheit, Testbarkeit und Wartbarkeit.
+
+---
+
+## Aufgabe 5: AST-Normalisierung mit Pattern Matching
+In `AstBuilders.simplify(Expr e)` wurde eine AST-zu-AST-Transformation realisiert, die redundante logische Ausdrücke entfernt.
+
+* **Record Patterns & Dekonstruktion**: Mittels Java 21+ Record Patterns wird die Struktur tiefenprüfend entpackt.
+* **Logische Optimierung**: Der Fall `case Expr.Not(Expr.Not(Expr inner))` erkennt doppelte Negationen direkt auf Typebene und eliminiert diese im Compiler-Durchlauf rekursiv.
+* **Vollständigkeitsprüfung**: Da `Expr` ein `sealed interface` ist, garantiert der Compiler zur Compilezeit die Vollständigkeit (*Exhaustiveness*) des `switch`-Ausdrucks ohne `default`-Zweig.
+
+---
+
+## Aufgabe 6: Approval Testing
+Um komplexe Objektbäume nicht fehleranfällig von Hand als JUnit-Assertion zu definieren, wurde in `ApprovalTest` die Bibliothek `ApprovalTests.Java` integriert.
+
+* **Ablauf**: Eine komplexe Filter-Query wird geparst, in einen AST überführt und via `AstPrinter.toString()` serialisiert.
+* **Verifikation**: Die Methode `Approvals.verify()` vergleicht die Ausgabe mit einer verifizierten Datei (`.approved.txt`). Weicht der erzeugte Baum ab (z.B. durch einen Fehler im Parser/Builder), schlägt der Test sofort fehl und visualisiert das Delta im Diff-Tool.
+
+---
+
+## Aufgabe 7: Property-based Testing
+In `RoundtripPropertiesTest` wird das Test-Framework **jqwik** verwendet, um die Robustheit der DSL über automatisierte Massentests nachzuweisen.
+
+* **Generatoren (Arbitraries)**: Das vom Lehrstuhl bereitgestellte Setup generiert hunderte mathematisch zufällige Queries (Kombinationen aus validen Feldern, Strings, Zahlen und logischen Operatoren).
+* **Invariante (Roundtrip)**: Es wird die Eigenschaft geprüft, dass für jede generierte Query gilt, dass nach dem Parsen, Drucken und erneuten Parsen wieder exakt derselbe AST herauskommen muss (Strukturelle Gleichheit).
+* **Verschränkte Validierung**: Zudem wird über `roundtripCrossed` bewiesen, dass die Ausgaben von `AstBuilderVisitor` und `AstBuilderPattern` strukturell zu 100% kompatibel und austauschbar sind.
